@@ -49,7 +49,18 @@ export async function onRequestPost({request,env}) {
   p.set("shipping_options[0][shipping_rate_data][delivery_estimate][maximum][value]","12");
   const r=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:`Bearer ${env.STRIPE_SECRET_KEY}`,"Content-Type":"application/x-www-form-urlencoded"},body:p.toString()});
   const data=await r.json();
-  if(!r.ok)return reply({error:"Secure checkout could not be created. Try again later."},502);
+  if (!r.ok) {
+  console.error("Stripe checkout error", {
+    status: r.status,
+    type: data.error?.type,
+    code: data.error?.code,
+    param: data.error?.param,
+    message: data.error?.message
+  });
+  return reply({
+    error: "Stripe checkout failed. Check Cloudflare logs."
+  }, 502);
+  }
   return reply({url:data.url});
 }
 function reply(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}})}
